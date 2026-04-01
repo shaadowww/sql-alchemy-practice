@@ -2,16 +2,22 @@ import os
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-from queries.core import create_tables, insert_data_orm
-from models import User, Tournament
+from queries.core import create_tables, SynchCore
+from models import UserModel, TournamentModel
 
-user_1 = User(username="Misha", level=2, rating=5)
-user_2 = User(username="Vitya", level=1, rating=8)
-tournament_1 = Tournament(match_id=3852, stage=2, user1_id=1, user2_id=2)
+Misha = UserModel(username="Misha", level=2, rating=5, experience=890)
+Vitya = UserModel(username="Vitya", level=1, rating=8, experience=970)
+Ifmi = UserModel(username="IFMI", level=3, rating=7, experience=150)
+tournament_1 = TournamentModel(match_id=3852, stage=2, user1_id=1, user2_id=2)
 
 create_tables()
-insert_data_orm("users",user_name=user_1.username, level_arg=user_1.level, rating_arg=user_1.rating)
+SynchCore.insert_data_orm("users",username=Misha.username, level=Misha.level, rating=Misha.rating)
 
-insert_data_orm("users",user_name=user_2.username, level_arg=user_2.level, rating_arg=user_2.rating)
+SynchCore.insert_data_orm("users",username=Vitya.username, level=Vitya.level, rating=Vitya.rating)
 
-insert_data_orm("tournaments",match_id_arg=tournament_1.match_id,stage_arg=tournament_1.stage, user1_id_arg=tournament_1.user1_id,user2_id_arg=tournament_1.user2_id)
+SynchCore.insert_data_orm("users",username=Ifmi.username, level=Ifmi.level, rating=Ifmi.rating)
+
+SynchCore.insert_data_orm("tournaments",match_id=tournament_1.match_id,stage=tournament_1.stage, user1_id=tournament_1.user1_id,user2_id=tournament_1.user2_id)
+print(SynchCore.select_data("users"))
+print(f"{'-' * 20}")
+print(SynchCore.select_data("tournaments"))

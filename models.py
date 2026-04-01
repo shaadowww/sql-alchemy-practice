@@ -5,12 +5,13 @@ from database_engines import Base
 from typing import Annotated
 from datetime import datetime
 
-class User(BaseModel):
+class UserModel(BaseModel):
     username: str = Field(max_length=15)
     level: PositiveInt
+    experience: PositiveInt | None = Field(ge=100, lt=1000)
     rating: PositiveInt
 
-class Tournament(BaseModel):
+class TournamentModel(BaseModel):
 
     match_id: PositiveInt = Field(ge=1000, le=9999)
     stage: PositiveInt = Field(ge=1, le=10)
@@ -38,7 +39,11 @@ class UsersORM(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str]
     level: Mapped[int]
+    experience: Mapped[int | None] = mapped_column(server_default=text("100"))
     rating: Mapped[int]
+    
+    def __repr__(self):
+        return f"User(id={self.id}, name='{self.username}', lvl={self.level})"
 
 
 class TournamentsORM(Base):
@@ -50,3 +55,6 @@ class TournamentsORM(Base):
     user2_id: Mapped[intforeign]
     winner_id: Mapped[intforeign | None]
     date: Mapped[datetime | None] = mapped_column(server_default=text("TIMEZONE ('utc-2', now())"))
+
+    def __repr__(self):
+        return f"Match(id={self.match_id}, stage={self.stage}, p1={self.user1_id}, p2={self.user2_id})"
