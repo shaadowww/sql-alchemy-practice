@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pydantic import BaseModel, PositiveInt, Field
 from database_engines import Base
 from typing import Annotated
@@ -18,8 +18,8 @@ class TournamentModel(BaseModel):
     user1_id: int
     user2_id: int
     winner_id: PositiveInt | None = None
-    
 
+    
 # imperative style
 # users_table = Table(
 #     "users",
@@ -41,7 +41,7 @@ class UsersORM(Base):
     level: Mapped[int]
     experience: Mapped[int | None] = mapped_column(server_default=text("100"))
     rating: Mapped[int]
-    
+
     def __repr__(self):
         return f"User(id={self.id}, name='{self.username}', lvl={self.level})"
 
@@ -56,5 +56,9 @@ class TournamentsORM(Base):
     winner_id: Mapped[intforeign | None]
     date: Mapped[datetime | None] = mapped_column(server_default=text("TIMEZONE ('utc-2', now())"))
 
+    user1: Mapped["UsersORM"] = relationship(foreign_keys="TournamentsORM.user1_id")
+    user2: Mapped["UsersORM"] = relationship(foreign_keys="TournamentsORM.user2_id")
+    winner: Mapped["UsersORM"] = relationship(foreign_keys="TournamentsORM.winner_id")
+
     def __repr__(self):
-        return f"Match(id={self.match_id}, stage={self.stage}, p1={self.user1_id}, p2={self.user2_id})"
+        return f"Match id={self.match_id},\n stage={self.stage},\n p1={self.user1_id},\n p2={self.user2_id}"

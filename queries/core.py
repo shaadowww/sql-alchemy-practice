@@ -1,6 +1,5 @@
-from typing import Optional
-
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
+from sqlalchemy.orm import joinedload
 from database_engines import engine, session_factory, Base
 from models import UsersORM, TournamentsORM
 
@@ -61,4 +60,24 @@ class SynchCore:
             
             session.execute(stmt)
             session.commit()
-            
+
+class Test:
+    @staticmethod
+    def tournament_select():
+        with session_factory() as session:
+            query = (
+                select(TournamentsORM)
+                .options(
+                    joinedload(TournamentsORM.user1),
+                    joinedload(TournamentsORM.user2),
+                    joinedload(TournamentsORM.winner)
+                )
+            )
+
+            res = session.execute(query)
+            result = res.scalars().all()
+
+            for tour in result:
+                print(f"Match {tour.match_id}: "
+                      f"{tour.user1.username} vs {tour.user2.username}")
+                if tour.winner: print(f"Winner is: {tour.winner.username}")
