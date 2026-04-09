@@ -43,7 +43,7 @@ class UsersORM(Base):
     rating: Mapped[int]
 
     def __repr__(self):
-        return f"User(id={self.id}, name='{self.username}', lvl={self.level})"
+        return f"User {self.username} id={self.id}, level={self.level}, exp={self.experience}, rating={self.rating}"
 
 
 class TournamentsORM(Base):

@@ -1,3 +1,4 @@
+from typing import Sequence
 from sqlalchemy import select, text, update
 from sqlalchemy.orm import joinedload
 from database_engines import engine, session_factory, Base
@@ -61,6 +62,22 @@ class SynchCore:
             session.execute(stmt)
             session.commit()
 
+    @staticmethod
+    def show_leaderboard():
+        with session_factory() as session:
+            query = (
+                select(UsersORM)
+                .order_by(
+                    UsersORM.rating.desc(),
+                    UsersORM.level.desc()
+                )
+                .limit(5)
+            )
+            execution = session.execute(query)
+            leaderboard = execution.scalars().all()
+
+            print(f"{leaderboard=}\n")
+        
 class Test:
     @staticmethod
     def tournament_select():
