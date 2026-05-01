@@ -13,6 +13,12 @@ class Settings(BaseSettings):
         # postgresql+psycopg://USER:PASSWORD@HOST:PORT/DATABASE
         return f"postgresql+psycopg://{self.DB_USERNAME}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
+    @property
+    def DB_URL_asyncpg(self):
+        # asynchronous
+        # postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DATABASE
+        return f"postgresql+asyncpg://{self.DB_USERNAME}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+    
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()

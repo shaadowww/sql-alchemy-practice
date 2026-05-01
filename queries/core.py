@@ -1,7 +1,7 @@
 from typing import Sequence
 from sqlalchemy import select, text, update
 from sqlalchemy.orm import joinedload
-from database_engines import engine, session_factory, Base
+from database_engines import engine, async_engine, session_factory, async_session_factory, Base
 from models import UsersORM, TournamentsORM
 
 TABLE_MAP = {
@@ -12,6 +12,11 @@ TABLE_MAP = {
 def create_tables():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+
+async def async_create_tables():
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 class SynchCore:
 
@@ -78,6 +83,85 @@ class SynchCore:
 
             print(f"{leaderboard=}\n")
         
+
+class AsynchCore:
+
+    @staticmethod
+    def _get_model(table_name: str):
+        model = TABLE_MAP.get(table_name)
+        if not model:
+            raise ValueError(f"Таблица {table_name} не зарегистрирована в TABLE_MAP")
+        return model
+    
+    @staticmethod
+    async def insert_data_orm(table_model: str, **data):
+        '''`Inserts the data into specified table`'''
+        model = AsynchCore._get_model(table_model)
+        async with async_session_factory() as session:
+            new_obj = model(**data)
+            session.add(new_obj)
+            await session.commit()
+    
+    @staticmethod
+    async def select_data(table_model: str, **filters):
+        '''Select all data'''
+        model = AsynchCore._get_model(table_model)
+        async with async_session_factory() as session:
+            query = select(model) # SELECT * FROM table_name
+
+            for key, val in filters.items():
+                if val is not None:
+                    query = query.where(getattr(model, key) == val)
+
+            result = await session.execute(query)
+            res = result.scalars().all()
+            return res
+        
+    @staticmethod
+    async def update_data(table_name: str, filter_by: dict, **updates):
+        model = AsynchCore._get_model(table_name)
+        async with async_session_factory() as session:
+            
+            stmt = update(model)
+            
+            for key, value in filter_by.items():
+                stmt = stmt.where(getattr(model, key) == value)
+            stmt = stmt.values(**updates)
+            
+            await session.execute(stmt)
+            await session.commit()
+
+    @staticmethod
+    async def update_data(table_name: str, filter_by: dict, **updates):
+        model = AsynchCore._get_model(table_name)
+        async with async_session_factory() as session:
+            
+            stmt = update(model)
+            
+            for key, value in filter_by.items():
+                stmt = stmt.where(getattr(model, key) == value)
+            stmt = stmt.values(**updates)
+            
+            await session.execute(stmt)
+            await session.commit()
+
+    @staticmethod
+    async def show_leaderboard():
+        async with async_session_factory() as session:
+            query = (
+                select(UsersORM)
+                .order_by(
+                    # UsersORM.rating.desc(),
+                    UsersORM.level.desc(),
+                )
+                .limit(5)
+            )
+            execution = await session.execute(query)
+            leaderboard = execution.scalars().all()
+
+            print(f"{leaderboard=}\n")
+
+        
 class Test:
     @staticmethod
     def tournament_select():
@@ -96,5 +180,25 @@ class Test:
 
             for tour in result:
                 print(f"Match {tour.match_id}: "
+                      f"{tour.user1.username} vs {tour.user2.username}")
+                if tour.winner: print(f"Winner is: {tour.winner.username}")
+
+    @staticmethod
+    async def async_tournament_select():
+        async with async_session_factory() as session:
+            query = (
+                select(TournamentsORM)
+                .options(
+                    joinedload(TournamentsORM.user1),
+                    joinedload(TournamentsORM.user2),
+                    joinedload(TournamentsORM.winner)
+                )
+            )
+
+            res = await session.execute(query)
+            result = res.scalars().all()
+
+            async for tour in result:
+                await print(f"Match {tour.match_id}: "
                       f"{tour.user1.username} vs {tour.user2.username}")
                 if tour.winner: print(f"Winner is: {tour.winner.username}")
