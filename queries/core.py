@@ -9,14 +9,69 @@ TABLE_MAP = {
     "tournaments": TournamentsORM
 }
 
-def create_tables():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+# def create_tables():
+#     Base.metadata.drop_all(engine)
+#     Base.metadata.create_all(engine)
 
-async def async_create_tables():
+# async def async_create_tables():
+#     async with async_engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.drop_all)
+#         await conn.run_sync(Base.metadata.create_all)
+
+def tournament_select():
+    with session_factory() as session:
+        query = (
+            select(TournamentsORM)
+            .options(
+                joinedload(TournamentsORM.user1),
+                joinedload(TournamentsORM.user2),
+                joinedload(TournamentsORM.winner)
+            )
+        )
+
+        res = session.execute(query)
+        result = res.scalars().all()
+
+        for tour in result:
+            print(f"Match {tour.match_id}: "
+                    f"{tour.user1.username} vs {tour.user2.username}")
+            if tour.winner: print(f"Winner is: {tour.winner.username}")
+
+async def truncate_tables():
     async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+        tables = [
+            table.name for table in Base.metadata.sorted_tables 
+            if table.name != 'alembic_version'
+        ]
+
+        if tables:
+            tables_str = ", ".join(tables)
+            query = text(f"TRUNCATE TABLE {tables_str} RESTART IDENTITY CASCADE;")
+
+            await conn.execute(query)
+            print(f"{"-" * 8} Successfully truncated: {tables_str} {"-" * 8}")
+
+
+async def async_tournament_select():
+    async with async_session_factory() as session:
+        query = (
+            select(TournamentsORM)
+            .options(
+                joinedload(TournamentsORM.user1),
+                joinedload(TournamentsORM.user2),
+                joinedload(TournamentsORM.winner)
+            )
+        )
+
+        res = await session.execute(query)
+        result = res.scalars().all()
+
+        for tour in result:
+            print(f"{"-" * 25}\nMatch {tour.match_id}: "
+                    f"{tour.user1.username} vs {tour.user2.username}")
+            if tour.winner: print(f"Winner is: {tour.winner.username}")
+        print("-" * 25)
+
 
 class SynchCore:
 
@@ -132,26 +187,12 @@ class AsynchCore:
             await session.commit()
 
     @staticmethod
-    async def update_data(table_name: str, filter_by: dict, **updates):
-        model = AsynchCore._get_model(table_name)
-        async with async_session_factory() as session:
-            
-            stmt = update(model)
-            
-            for key, value in filter_by.items():
-                stmt = stmt.where(getattr(model, key) == value)
-            stmt = stmt.values(**updates)
-            
-            await session.execute(stmt)
-            await session.commit()
-
-    @staticmethod
     async def show_leaderboard():
         async with async_session_factory() as session:
             query = (
                 select(UsersORM)
                 .order_by(
-                    # UsersORM.rating.desc(),
+                    UsersORM.rating.desc(),
                     UsersORM.level.desc(),
                 )
                 .limit(5)
@@ -161,44 +202,3 @@ class AsynchCore:
 
             print(f"{leaderboard=}\n")
 
-        
-class Test:
-    @staticmethod
-    def tournament_select():
-        with session_factory() as session:
-            query = (
-                select(TournamentsORM)
-                .options(
-                    joinedload(TournamentsORM.user1),
-                    joinedload(TournamentsORM.user2),
-                    joinedload(TournamentsORM.winner)
-                )
-            )
-
-            res = session.execute(query)
-            result = res.scalars().all()
-
-            for tour in result:
-                print(f"Match {tour.match_id}: "
-                      f"{tour.user1.username} vs {tour.user2.username}")
-                if tour.winner: print(f"Winner is: {tour.winner.username}")
-
-    @staticmethod
-    async def async_tournament_select():
-        async with async_session_factory() as session:
-            query = (
-                select(TournamentsORM)
-                .options(
-                    joinedload(TournamentsORM.user1),
-                    joinedload(TournamentsORM.user2),
-                    joinedload(TournamentsORM.winner)
-                )
-            )
-
-            res = await session.execute(query)
-            result = res.scalars().all()
-
-            async for tour in result:
-                await print(f"Match {tour.match_id}: "
-                      f"{tour.user1.username} vs {tour.user2.username}")
-                if tour.winner: print(f"Winner is: {tour.winner.username}")
